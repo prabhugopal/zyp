@@ -1,12 +1,11 @@
-"""Real stage executors for zyp's own SDLC — the Python/pytest analogue of sLink's
-stages_sdlc.py. Every PASSED/FAILED here is backed by a real command's exit code or a real file's
-content: implementation stages check the actual service modules import cleanly (the Python
-analogue of `gradlew compileJava`), testing stages run real `uv run pytest` and parse the real
-JUnit XML / coverage JSON output, static analysis runs the real scan in policy.py.
+"""Real stage executors for zyp's own SDLC. Every PASSED/FAILED here is backed by a real command's
+exit code or a real file's content: implementation stages check the actual service modules import
+cleanly, testing stages run real `uv run pytest` and parse the real JUnit XML / coverage JSON
+output, static analysis runs the real scan in policy.py.
 
-Mirrors sLink's stages_sdlc.py's own choice to have unit_testing run the *full* suite (for its
-coverage figure and total pass count) and integration_testing separately re-run just its own
-subset — two real, independent test invocations, not one run's output reused for both.
+unit_testing runs the *full* suite (for its coverage figure and total pass count) and
+integration_testing separately re-runs just its own subset — two real, independent test
+invocations, not one run's output reused for both.
 """
 
 from __future__ import annotations

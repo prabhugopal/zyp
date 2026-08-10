@@ -23,8 +23,8 @@ graph TD
 - `zyp:link:{code}` — hash: `code`, `original_url`, `created_at`, `expires_at`, `active`.
 - `zyp:links_by_created` — sorted set (score = created_at) for newest-first pagination via
   `ZREVRANGE`, replacing `ORDER BY created_at DESC LIMIT/OFFSET`.
-- `zyp:code_counter` — a single `INCR`'d integer, Base62-encoded into the short code (same
-  encoding sLink's `Base62Codec` uses, backed by an atomic Redis counter instead of a DB sequence).
+- `zyp:code_counter` — a single `INCR`'d integer, Base62-encoded into the short code — an atomic
+  Redis counter standing in for a DB sequence.
 - `zyp:analytics:{code}:total` — click counter (`INCR`).
 - `zyp:analytics:{code}:by_day` — hash keyed by `YYYY-MM-DD` (`HINCRBY`).
 - `zyp:analytics:{code}:referrers` / `:user_agents` — sorted sets (`ZINCRBY`) for top-N ranking.
@@ -34,9 +34,8 @@ graph TD
 ## API layer
 
 flask-smorest MethodViews per resource, with marshmallow schemas (`schemas.py`) doing validation
-and response serialization from the same declaration — the same "one schema, two jobs" role
-sLink's Bean Validation + DTO records play. OpenAPI/Swagger UI is generated from those schemas
-automatically, not hand-written.
+and response serialization from the same declaration — one schema, two jobs. OpenAPI/Swagger UI
+is generated from those schemas automatically, not hand-written.
 
 ## Error model
 

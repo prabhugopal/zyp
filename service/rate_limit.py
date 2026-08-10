@@ -1,8 +1,7 @@
 """Fixed-window rate limiting via a Redis INCR+EXPIRE counter keyed per client per minute-window —
-applied to link creation only (matches sLink's create-only rate-limit decision). This is the one
-place Redis is a strictly better fit than sLink's in-memory Bucket4j/Caffeine registry: the counter
-already lives in the same store as everything else, with no separate in-process bucket cache to
-keep synchronized across instances.
+applied to link creation only; redirects and reads stay unrestricted. The counter lives in the
+same store as everything else, with no separate in-process bucket cache to keep synchronized
+across instances.
 """
 
 from __future__ import annotations

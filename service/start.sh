@@ -2,12 +2,12 @@
 # Starts Zyp locally. Runs in the foreground (Ctrl+C to stop).
 #
 # Usage:
-#   ./start.sh                start on the default port (5000)
+#   ./start.sh                start on the default port (5055)
 #   ./start.sh --port 9090    start on a different port
 set -euo pipefail
 cd "$(dirname "$0")"
 
-PORT=5000
+PORT=5055
 while [[ $# -gt 0 ]]; do
 	case "$1" in
 	--port)

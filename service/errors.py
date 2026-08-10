@@ -1,7 +1,6 @@
-"""RFC 7807 problem+json error responses for domain errors — mirrors sLink's error model.
-flask-smorest's own marshmallow-validation errors (422) keep their default JSON shape rather than
-being forced into problem+json too; chasing byte-for-byte parity with sLink's Spring
-@RestControllerAdvice here would be effort spent on a corner nobody hits in the demo path.
+"""RFC 7807 problem+json error responses for domain errors. flask-smorest's own
+marshmallow-validation errors (422) keep their default JSON shape rather than being forced into
+problem+json too — a deliberate scope cut for a corner nobody hits in the demo path.
 """
 
 from __future__ import annotations

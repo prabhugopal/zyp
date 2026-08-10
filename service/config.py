@@ -1,5 +1,5 @@
-"""Declarative env-driven config — one frozen dataclass, same shape as
-orchestrator-agentic/config.py: defaults live as field defaults, env vars override."""
+"""Declarative env-driven config — one frozen dataclass; defaults live as field defaults, env
+vars override."""
 
 from __future__ import annotations
 
@@ -10,11 +10,12 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class Config:
     redis_url: str = "redis://localhost:6379/0"
-    base_url: str = "http://localhost:5000"
+    # 5000 collides with macOS's AirPlay Receiver (ControlCenter), which squats on it system-wide
+    # and answers with a 403 before Flask ever sees the request — 5055 avoids that entirely.
+    base_url: str = "http://localhost:5055"
     rate_limit_per_minute: int = 30
     admin_username: str = "admin"
-    # Fixed for local-dev convenience, same tradeoff sLink's application.yml makes. Set
-    # ADMIN_PASSWORD for anything beyond local dev.
+    # Fixed for local-dev convenience. Set ADMIN_PASSWORD for anything beyond local dev.
     admin_password: str = "zyp@123"
     auth_enabled: bool = True
 

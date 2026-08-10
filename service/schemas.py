@@ -1,5 +1,5 @@
-"""Marshmallow schemas — validation at the boundary and response serialization in one declaration,
-same role as sLink's Bean Validation + DTO records."""
+"""Marshmallow schemas — validation at the boundary and response serialization from one
+declaration."""
 
 from __future__ import annotations
 

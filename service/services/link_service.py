@@ -1,7 +1,7 @@
 """Link lifecycle: create/get/update/delete/list, backed entirely by Redis — no SQL. Codes are
-Base62-encoded sequence numbers (INCR'd counter), mirroring sLink's Base62Codec. Listing avoids a
-full-table scan by keeping a sorted set of codes ordered by creation time (ZADD/ZREVRANGE) instead
-of a SQL ORDER BY + OFFSET/LIMIT.
+Base62-encoded sequence numbers from an INCR'd counter. Listing avoids a full-table scan by
+keeping a sorted set of codes ordered by creation time (ZADD/ZREVRANGE) instead of a SQL
+ORDER BY + OFFSET/LIMIT.
 """
 
 from __future__ import annotations
@@ -114,8 +114,8 @@ class LinkService:
         return link
 
     def update(self, code: str, expires_at: float | None = None, active: bool | None = None) -> ShortLink:
-        """A None argument leaves that field unchanged — mirrors sLink's PATCH semantics. There is
-        no way to clear an already-set expiry via update, matching sLink's own documented behavior."""
+        """A None argument leaves that field unchanged. There is no way to clear an already-set
+        expiry via update — only to set a new one or leave it alone."""
         link = self.get(code)
         if expires_at is not None:
             link.expires_at = expires_at

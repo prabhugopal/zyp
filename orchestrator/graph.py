@@ -1,5 +1,5 @@
-"""The greenfield SDLC topology for zyp itself, as a LangGraph StateGraph — same shape as
-sLink's orchestrator-agentic/graph.py, retargeted at zyp's own real pytest-based stages.
+"""The greenfield SDLC topology for zyp itself, as a LangGraph StateGraph, gating zyp's own real
+pytest-based stages.
 
 Fan-in pattern: a stage that depends on several parallel predecessors (unit_testing and
 static_analysis both depend on all three implementation_* stages) doesn't gate itself — instead

@@ -1,13 +1,11 @@
-"""Static-analysis hard gate for zyp's own Python source — the Python-native counterpart to
-sLink's orchestrator/engine/policy.py regex scan. Same idea (a real, subprocess-free text scan
-against source files for banned patterns), reimplemented for Python idioms since zyp has no Java
-source to share that scan with.
+"""Static-analysis hard gate for zyp's own Python source: a real, subprocess-free text scan
+against source files for banned patterns (hardcoded secrets, swallowed exceptions, eval/exec,
+non-TLS URLs).
 
 config.py is deliberately out of scope: its admin_password default is a documented local-dev
-convenience (see config.py's own comment), the same status sLink's application.yml default had —
-and that file was never in scope for sLink's scanner either, since it only ever scanned .java
-source, not config/resource files. Keeping the same scope here is intentional parity, not a
-carve-out invented to dodge a finding.
+convenience (see config.py's own comment), not a secret smuggled into business logic — scanning
+resource/config defaults would just be noise against a choice the codebase already states and
+justifies inline.
 """
 
 from __future__ import annotations

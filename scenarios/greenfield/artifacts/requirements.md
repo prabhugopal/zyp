@@ -2,9 +2,8 @@
 
 ## Goal
 
-A URL shortener service, functionally equivalent to sLink's core feature set, built on a
-different stack (Python/Flask + Redis instead of Java/Spring Boot + H2/JPA) to demonstrate the
-same capability with genuinely different storage-layer tradeoffs.
+A URL shortener service built on Python/Flask + Redis, with Redis as the only datastore — no SQL,
+no ORM, no separate persistence layer to migrate.
 
 ## Functional requirements
 
@@ -25,16 +24,14 @@ same capability with genuinely different storage-layer tradeoffs.
 
 ## Non-functional requirements
 
-- Redis is the only datastore — no SQL, no separate persistence layer to migrate.
-- Rate limiting on link creation only (not on redirects or reads), matching sLink's own decision.
+- Rate limiting on link creation only — redirects and reads stay unrestricted.
 - Errors on domain failures (unknown code, expired/deactivated link, alias conflict) return RFC
   7807 `problem+json`.
 - OpenAPI/Swagger UI generated from the same schemas that validate requests.
 - Core engineering principles: modular, testable, reliable — each service (link lifecycle,
   analytics, rate limiting) is independently unit-testable against `fakeredis`, with a separate
   integration-test layer against a real local Redis.
-- ≥70% test coverage as a real, enforced build gate (`pytest --cov-fail-under=70`), the same
-  threshold sLink's orchestrator enforces.
+- ≥70% test coverage as a real, enforced build gate (`pytest --cov-fail-under=70`).
 
 ## Out of scope for this iteration
 
@@ -46,9 +43,8 @@ same capability with genuinely different storage-layer tradeoffs.
 
 - A single local Redis instance is acceptable for this iteration; horizontal scaling of the
   Redis layer (Cluster/Sentinel) is a deployment concern, not a code-level requirement here.
-- "Recent clicks" capped at 50 (matching sLink's own analytics cap) is an acceptable bound for the
-  admin dashboard's activity table — older clicks remain reflected in the aggregate counters
-  (total, by-day, top referrers/user-agents), just not in the raw recent-activity list.
+- "Recent clicks" capped at 50 is an acceptable bound for the admin dashboard's activity table —
+  older clicks remain reflected in the aggregate counters (total, by-day, top referrers/user
+  agents), just not in the raw recent-activity list.
 - Admin auth can default to a fixed local-dev credential (documented in `config.py`), with the
-  expectation that any real deployment sets `ADMIN_PASSWORD` explicitly — same tradeoff sLink
-  makes for its own admin login.
+  expectation that any real deployment sets `ADMIN_PASSWORD` explicitly.

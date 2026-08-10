@@ -97,3 +97,21 @@ def test_root_redirects_to_swagger_ui(client):
     resp = client.get("/", follow_redirects=False)
     assert resp.status_code == 302
     assert resp.headers["Location"] == "/swagger-ui"
+
+
+def test_analytics_export_csv(client):
+    create_resp = client.post("/api/v1/links", json={"originalUrl": "https://example.com"})
+    code = create_resp.json["code"]
+    client.get(f"/{code}")  # generate a click
+
+    resp = client.get(f"/api/v1/links/{code}/analytics/export")
+    assert resp.status_code == 200
+    assert resp.content_type.startswith("text/csv")
+    lines = resp.data.decode().splitlines()
+    assert lines[0] == "clicked_at,referrer,user_agent"
+    assert len(lines) == 2
+
+
+def test_analytics_export_unknown_code_returns_404(client):
+    resp = client.get("/api/v1/links/doesnotexist/analytics/export")
+    assert resp.status_code == 404

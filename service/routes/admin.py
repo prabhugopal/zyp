@@ -1,6 +1,6 @@
 """Minimal server-rendered view over the same service layer the JSON API uses — a human-friendly
 complement to Swagger UI, not a replacement for the API. Basic Auth, toggleable via
-config.auth_enabled (matches sLink's local-dev-friendly on/off switch)."""
+config.auth_enabled for local-dev convenience."""
 
 from __future__ import annotations
 

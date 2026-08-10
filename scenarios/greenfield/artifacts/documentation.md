@@ -45,7 +45,7 @@ curl -i http://localhost:5000/<code>
 
 - No custom domains or multi-tenant link ownership.
 - No bulk/batch creation endpoint.
-- `PATCH` can set an expiry but not clear one once set (matches sLink's own documented PATCH
-  semantics — a null field is always "leave unchanged", never "clear").
+- `PATCH` can set an expiry but not clear one once set — a null field is always "leave unchanged",
+  never "clear".
 - The admin UI has no CSRF protection on the create-link form — acceptable for a local-dev tool
   behind Basic Auth, not something to carry into a real deployment without adding it.

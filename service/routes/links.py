@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from flask import current_app, request
+from flask import Response, current_app, request
 from flask.views import MethodView
 from flask_smorest import Blueprint
 
@@ -98,5 +98,18 @@ class LinkAnalyticsItem(MethodView):
                           "user agents, and the most recent clicks (newest first, capped at 50).")
     def get(self, code):
         zyp = current_app.extensions["zyp"]
-        zyp["link_service"].get(code)  # 404s if unknown, mirrors sLink's behavior
+        zyp["link_service"].get(code)  # 404s if unknown before returning analytics for a real code
         return _analytics_dict(zyp["analytics_service"].get_analytics(code))
+
+
+@blp.route("/<string:code>/analytics/export")
+class LinkAnalyticsExport(MethodView):
+    @blp.doc(summary="Export recent clicks as CSV",
+             description="The same recent-clicks data as the analytics endpoint (newest first, "
+                          "capped at 50), as a downloadable CSV file.")
+    def get(self, code):
+        zyp = current_app.extensions["zyp"]
+        zyp["link_service"].get(code)  # 404s if unknown
+        csv_text = zyp["analytics_service"].export_csv(code)
+        return Response(csv_text, mimetype="text/csv",
+                         headers={"Content-Disposition": f'attachment; filename="{code}-clicks.csv"'})

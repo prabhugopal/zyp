@@ -1,13 +1,13 @@
 """Click analytics, entirely Redis-native: a total counter (INCR), a per-day hash (HINCRBY), top
 referrers/user-agents as sorted sets (ZINCRBY), and a capped recent-clicks list (LPUSH + LTRIM) —
-no separate click-events table, no aggregation query. Each of these is the Redis-idiomatic
-structure for its own access pattern, which is the actual point of building Zyp: sLink pulls all
-of this from a click_events SQL table with GROUP BY; here each metric has its own tiny structure
-updated incrementally at write time instead.
+no separate click-events table, no aggregation query. Each metric is its own small, incrementally
+updated structure, computed at write time instead of queried at read time.
 """
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import time
 from dataclasses import dataclass, field
@@ -79,3 +79,15 @@ class AnalyticsService:
 
         return LinkAnalytics(total_clicks=total, clicks_by_day=by_day, top_referrers=top_referrers,
                               top_user_agents=top_user_agents, recent_clicks=recent)
+
+    def export_csv(self, code: str) -> str:
+        """CSV of recent clicks (same cap and ordering as `recent_clicks`) — for a link owner who
+        wants raw click data outside the dashboard, without adding a new datastore or query path."""
+        recent_raw = self.redis.lrange(_recent_key(code), 0, RECENT_CLICKS_LIMIT - 1)
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(["clicked_at", "referrer", "user_agent"])
+        for raw in recent_raw:
+            record = json.loads(raw)
+            writer.writerow([record["clicked_at"], record["referrer"], record["user_agent"]])
+        return buffer.getvalue()
