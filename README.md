@@ -1,4 +1,6 @@
-```
+# zyp
+
+```scala
                               
 $$$$$$$\ $$\   $$\  $$$$$$\  
 \____$$  |$$ |  $$ |$$  __$$\ 
@@ -11,7 +13,6 @@ $$$$$$$$\ \$$$$$$$ |$$$$$$$  |
            \______/ \__|      
 ```
 
-# zyp
 
 A URL shortener built on Python, FastAPI, and Redis, paired with an SDLC orchestration engine built
 on [LangGraph](https://github.com/langchain-ai/langgraph) that builds and gates it: real command
