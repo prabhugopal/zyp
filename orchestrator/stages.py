@@ -58,7 +58,11 @@ def _run_uv(service_dir: str, *args: str, timeout: int = 300) -> subprocess.Comp
 
 def _module_imports(service_dir: str, module: str) -> tuple[bool, str]:
     result = _run_uv(service_dir, "python", "-c", f"import {module}")
-    return result.returncode == 0, (result.stderr[-500:] if result.returncode != 0 else "")
+    if result.returncode == 0:
+        return True, ""
+    stderr = result.stderr
+    traceback_start = stderr.find("Traceback")
+    return False, (stderr[traceback_start:][-500:] if traceback_start != -1 else stderr[-500:])
 
 
 def _parse_junit(service_dir: str, xml_name: str) -> tuple[int, int, int]:
@@ -104,6 +108,48 @@ def implementation_core_executor(service_dir: str) -> StageResult:
         if not ok:
             return StageResult(False, f"{module} failed to import: {err}", transient=True)
     return StageResult(True, "core link service + routes import cleanly")
+
+
+def _route_block(source: str, anchor: str) -> str:
+    """Source text from a route decorator containing `anchor` up to the next '@router.' or EOF —
+    enough to check which dependencies apply to which endpoint without a full AST parse."""
+    idx = source.find(anchor)
+    if idx == -1:
+        return ""
+    rest = source[idx:]
+    next_idx = rest.find("@router.", len(anchor))
+    return rest if next_idx == -1 else rest[:next_idx]
+
+
+def implementation_core_auth_executor(service_dir: str, scenario_dir: str) -> StageResult:
+    """Ambiguous scenario only: which auth scope is currently correct depends on whether a
+    clarification has arrived, checked here at execution time (not baked in at graph-build time)
+    — so a retry after scenarios/ambiguous/clarification.md appears re-evaluates against the
+    corrected scope for real, using the real file on disk, not a flag threaded through the graph.
+    """
+    narrowed = os.path.exists(os.path.join(scenario_dir, "clarification.md"))
+    path = os.path.join(service_dir, "routes", "links.py")
+    with open(path, encoding="utf-8") as f:
+        source = f.read()
+    analytics_block = _route_block(source, '/{code}/analytics", response_model')
+    export_block = _route_block(source, '/{code}/analytics/export"')
+    analytics_has_auth = "require_auth" in analytics_block
+    export_has_auth = "require_auth" in export_block
+
+    if not export_has_auth:
+        return StageResult(False, "GET .../analytics/export must require auth under either "
+                                   "interpretation", transient=True)
+    if narrowed:
+        if analytics_has_auth:
+            return StageResult(False, "clarified (narrowed) scope: GET .../analytics should NOT "
+                                       "require auth, only .../export", transient=True)
+        return StageResult(True, "auth scoped to .../analytics/export only, matching the "
+                                  "clarified scope")
+    if not analytics_has_auth:
+        return StageResult(False, "approved (broad) scope requires auth on GET .../analytics "
+                                   "too, not just .../export", transient=True)
+    return StageResult(True, "auth required on both .../analytics and .../analytics/export, "
+                              "matching the approved broad scope")
 
 
 def implementation_storage_executor(service_dir: str) -> StageResult:

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import os
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
@@ -36,6 +36,15 @@ def create(originalUrl: str = Form(...), customAlias: str | None = Form(None),
         return RedirectResponse(f"/admin?created={link.code}", status_code=303)
     except Exception as exc:
         return RedirectResponse(f"/admin?error={exc}", status_code=303)
+
+
+@router.get("/logout", name="admin_logout")
+def logout():
+    """HTTP Basic Auth has no logout primitive — the browser caches credentials for the origin
+    until it's closed. The conventional workaround is to answer with a fresh 401 challenge; most
+    browsers respond by discarding the cached credentials so the next request re-prompts. This is
+    a widely used convention, not part of the HTTP spec, so behavior can vary by browser."""
+    raise HTTPException(401, "Logged out", headers={"WWW-Authenticate": 'Basic realm="zyp"'})
 
 
 @router.get("/{code}", name="admin_detail", dependencies=[Depends(require_auth)])

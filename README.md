@@ -21,6 +21,7 @@ reasoning layered on top of — never substituting for — deterministic verific
 | Stage executors | `orchestrator/stages.py` | The real commands each stage runs against `service/` |
 | Reasoning nodes | `orchestrator/nodes/reasoning.py` | LLM-assisted ambiguity analysis and code review, advisory only |
 | CLI | `orchestrator/cli.py` | `run`, `approve`, `status`, `list` |
+| Run report | `orchestrator/report.py` | Self-contained HTML summary of a completed run (status, stage results, full LLM/test trace), written alongside the JSON status file |
 
 ## Data model
 
@@ -46,11 +47,13 @@ Redis is the only datastore — no SQL, no ORM, no schema migrations.
 | `GET` | `/api/v1/links/{code}` | Metadata, no redirect |
 | `PATCH` | `/api/v1/links/{code}` | Partial update (expiry, active flag) |
 | `DELETE` | `/api/v1/links/{code}` | Soft delete |
-| `GET` | `/api/v1/links/{code}/analytics` | Aggregated click data |
+| `GET` | `/api/v1/links/{code}/analytics` | Aggregated click data (public) |
+| `GET` | `/api/v1/links/{code}/analytics/export` | Raw per-click CSV export (requires auth — see `ambiguous` scenario) |
 | `GET` | `/{code}` | Redirect; records the click |
 
 Errors on domain failures return RFC 7807 `problem+json`. Full request/response schemas are in
-`service/schemas.py` and served live at `/swagger-ui`.
+`service/schemas.py` and served live at `/swagger-ui`. The admin UI (`/admin`) adds `GET
+/admin/logout`, which re-issues a 401 challenge — see the Basic Auth trade-off below.
 
 ## Orchestration model
 
@@ -126,14 +129,22 @@ failure.
   language model to surface ambiguity or design concerns as text attached to the run's messages.
   Neither can change a stage's PASSED/FAILED status — that always comes from a real command's exit
   code or a real file check. Trade-off: reasoning quality depends on the configured model; the
-  default local model is weaker than a hosted one, by design, to keep the default path free.
+  default local model is weaker than a hosted one, by design, to keep the default path free. This
+  showed up directly during development: with `llama3.2:3b`, a code-review pass once described
+  `service/app.py` as "creating the Flask app" despite the file importing FastAPI throughout — the
+  model pattern-matched the `create_app()` factory idiom instead of reading the actual imports.
+  Advisory-only status is what keeps a mistake like that from affecting a stage's real outcome; the
+  prompt now states the actual framework explicitly to reduce (not eliminate) this failure mode.
 - **The admin UI is server-rendered (Jinja2), not a client-side app.** No JS framework, no client
   bundle, no API tokens sitting in browser storage. Trade-off: this is not automatically "more
   secure" — it buys a smaller client-side attack surface, not CSRF protection. In fact, because the
   admin UI uses HTTP Basic Auth, browsers cache those credentials per-origin and auto-attach them
   to any request to that origin, including one triggered by a malicious page elsewhere — which is
   why the create-link form's missing CSRF token (see Limitations) is a real gap, not a theoretical
-  one, and SSR alone does not close it.
+  one, and SSR alone does not close it. Basic Auth also has no logout primitive; `GET
+  /admin/logout` works around this by re-issuing a fresh 401 challenge, which most browsers respond
+  to by dropping the cached credentials — a convention, not part of the HTTP spec, so it isn't
+  guaranteed across every browser.
 
 ## Setup
 
@@ -156,14 +167,14 @@ curl -i http://localhost:5055/<code>
 ```bash
 cd orchestrator
 ./setup.sh                          # installs Ollama, pulls a local model, syncs the Python env
-uv run python cli.py run --scenario greenfield
+./zypit run --scenario greenfield   # thin wrapper around `uv run python cli.py`
 ```
 
 If a stage requires approval, the run stops and prints the exact resume command:
 
 ```bash
-uv run python cli.py approve <run_id> --by "Your Name" --decision approve
-uv run python cli.py run --scenario greenfield --run-id <run_id>
+./zypit approve <run_id> --by "Your Name" --decision approve
+./zypit run --scenario greenfield --run-id <run_id>
 ```
 
 To use Claude instead of the local model, set `model_provider: anthropic` in
@@ -181,7 +192,7 @@ To use Claude instead of the local model, set `model_provider: anthropic` in
 cd service && uv run pytest tests/ --cov=. --cov-report=term-missing
 ```
 
-40 tests, ~97% instruction coverage, enforced as a real gate in the `release_readiness` stage
+49 tests, 98% instruction coverage, enforced as a real gate in the `release_readiness` stage
 (`pytest --cov-fail-under=70`).
 
 ## Scenarios
@@ -189,8 +200,12 @@ cd service && uv run pytest tests/ --cov=. --cov-report=term-missing
 | Scenario | Status | Demonstrates |
 |---|---|---|
 | Greenfield | Implemented (`scenarios/greenfield/`) | Full-graph build of the service: requirements through approval-gated release |
-| Brownfield | In progress | Adding a feature to existing code; a real transient fault and a real git-based rollback |
-| Ambiguous | In progress | A genuinely underspecified request; human-approved scope; a real mid-run replan |
+| Brownfield | Implemented (`scenarios/brownfield/`) | Adding a feature (CSV analytics export) to existing code; a real seeded import fault, exhausted retries, and a real git-based rollback of only the affected paths |
+| Ambiguous | Implemented (`scenarios/ambiguous/`) | A genuinely underspecified request (which analytics surface needs auth?); a human-approved interpreted scope; a real verification failure against that scope; a clarification narrowing it; a fresh run passing against the narrowed scope |
+
+Each scenario's run reports (`orchestrator/state/runs/<run_id>.report.html` and `.json`) are
+checked in as real evidence, not simulated output — see `orchestrator/README.md` for example runs
+of all three.
 
 ## Limitations
 
@@ -204,6 +219,10 @@ cd service && uv run pytest tests/ --cov=. --cov-report=term-missing
   port 5000 system-wide and answers with its own 403 before a request ever reaches the app. This was
   found by actually hitting `/swagger-ui` and getting a `Server: AirTunes/...` response instead of
   an error from the app.
+- The default local model (`llama3.2:3b`) is small enough to occasionally get plain facts about the
+  source wrong in its advisory commentary — see the Key decisions note on the LLM being advisory,
+  never authoritative. A hosted model (`model_provider: anthropic`) is more reliable here; the
+  local default is chosen to keep the default path free, not for review quality.
 
 ## Repo layout
 

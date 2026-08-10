@@ -12,6 +12,7 @@ import rollback
 import stages
 from config import Config
 from policy import profile_for
+from progress import spinner
 
 MAX_ATTEMPTS = {"implementation_core": 2, "unit_testing": 2, "static_analysis": 2}
 DEFAULT_MAX_ATTEMPTS = 1
@@ -50,8 +51,11 @@ def make_node(stage_id: str, config: Config):
         if stage_id in ROLLBACK_PATHS and f"__snapshot__{stage_id}" not in state["context"]:
             context_delta[f"__snapshot__{stage_id}"] = rollback.git_head(state["repo_root"])
 
+        attempt_note = f" (attempt {attempt})" if attempt > 1 else ""
+        print(f"  [{stage_id}] running{attempt_note}...", flush=True)
         start = time.monotonic()
-        result = executor(state[path_key])
+        with spinner(f"[{stage_id}]"):
+            result = executor(state[path_key])
 
         if result.success and stage_id == "unit_testing":
             coverage = stages.parse_coverage(state["service_dir"])

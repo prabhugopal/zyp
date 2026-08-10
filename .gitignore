@@ -11,6 +11,6 @@ service/.zyp-junit-*.xml
 service/.zyp-coverage.json
 
 # the LangGraph checkpoint DB — regenerable, not human-inspectable evidence.
-# state/runs/*.json (run summaries) and state/approvals/*.json (approval decisions) ARE
-# committed on purpose, as real evidence.
+# state/runs/*.json and *.report.html (run summaries) and state/approvals/*.json (approval
+# decisions) ARE committed on purpose, as real evidence.
 orchestrator/state/checkpoints.sqlite

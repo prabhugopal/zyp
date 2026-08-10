@@ -15,7 +15,9 @@ Requires [uv](https://docs.astral.sh/uv/) and a local Redis (`brew install redis
 ```
 
 - Swagger UI: http://localhost:5055/swagger-ui
-- Admin UI: http://localhost:5055/admin (Basic Auth, `admin` / `zyp@123` by default — see `config.py`)
+- Admin UI: http://localhost:5055/admin (Basic Auth, `admin` / `zyp@123` by default — see
+  `config.py`; `GET /admin/logout` re-issues a 401 to drop cached credentials in most browsers —
+  Basic Auth has no real logout primitive)
 
 ```bash
 curl -X POST http://localhost:5055/api/v1/links \
@@ -29,8 +31,8 @@ curl -i http://localhost:5055/<code>   # 302 redirect
 ## Tests
 
 ```bash
-uv run pytest tests/                                          # 40 tests, ~2s
-uv run pytest tests/ --cov=. --cov-report=term-missing         # 97% coverage
+uv run pytest tests/                                          # 49 tests, ~1.5s
+uv run pytest tests/ --cov=. --cov-report=term-missing         # 98% coverage
 ```
 
 Unit tests (`tests/unit/`) use `fakeredis` — no Redis needed, fast. Integration tests
@@ -46,7 +48,8 @@ FastAPI's real TestClient — the actual create → redirect → analytics path,
 | `GET` | `/api/v1/links/{code}` | Metadata, no redirect |
 | `PATCH` | `/api/v1/links/{code}` | Partial update (expiry, active) |
 | `DELETE` | `/api/v1/links/{code}` | Soft delete (deactivate) |
-| `GET` | `/api/v1/links/{code}/analytics` | Total clicks, by-day, top referrers/user-agents, recent clicks |
+| `GET` | `/api/v1/links/{code}/analytics` | Total clicks, by-day, top referrers/user-agents, recent clicks (public) |
+| `GET` | `/api/v1/links/{code}/analytics/export` | The same recent-clicks data as a raw CSV (Basic Auth required) |
 | `GET` | `/{code}` | The actual redirect; records the click |
 
 Errors are RFC 7807 `problem+json` for domain errors (404/409/410/400); request-validation errors
@@ -63,3 +66,8 @@ Errors are RFC 7807 `problem+json` for domain errors (404/409/410/400); request-
   time, read with `ZREVRANGE` — Redis's answer to `ORDER BY created_at DESC LIMIT/OFFSET`.
 - **Soft delete** marks a link inactive rather than removing its Redis key, so click history
   survives the "deletion."
+- **Only the raw CSV export requires auth, not the aggregated summary** — a deliberately narrow
+  scope, not an oversight: the summary is already shown on the (auth-gated) admin dashboard, and
+  gating it too would break sharing that dashboard link with teammates who lack admin credentials.
+  The bulk export is the higher-sensitivity surface. See `../orchestrator/`'s `ambiguous` scenario
+  for how this scope was decided and verified.

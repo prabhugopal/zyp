@@ -18,7 +18,11 @@
   </style>
 </head>
 <body>
-  <p><a href="{{ request.url_for('admin_index') }}">&larr; back</a></p>
+  <p>
+    <a href="{{ request.url_for('admin_index') }}">&larr; back</a>
+    &middot;
+    <a href="{{ request.url_for('admin_logout') }}">Log out</a>
+  </p>
   <h1><code>{{ link.code }}</code></h1>
   <p><a href="{{ base_url }}/{{ link.code }}">{{ base_url }}/{{ link.code }}</a> &rarr; {{ link.original_url }}</p>
 

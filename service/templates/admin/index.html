@@ -16,10 +16,15 @@
     .msg { padding: 0.5rem; border-radius: 4px; margin-top: 1rem; }
     .msg.error { background: #fee2e2; color: #991b1b; }
     .msg.success { background: #dcfce7; color: #166534; }
+    .topbar { display: flex; justify-content: space-between; align-items: baseline; }
+    .topbar a { color: #666; font-size: 0.85rem; }
   </style>
 </head>
 <body>
-  <h1>Zyp — recent links</h1>
+  <div class="topbar">
+    <h1>Zyp — recent links</h1>
+    <a href="{{ request.url_for('admin_logout') }}">Log out</a>
+  </div>
 
   {% if request.query_params.get('error') %}<div class="msg error">{{ request.query_params.get('error') }}</div>{% endif %}
   {% if request.query_params.get('created') %}<div class="msg success">Created: {{ request.query_params.get('created') }}</div>{% endif %}

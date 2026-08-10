@@ -14,6 +14,7 @@ import time
 import stages
 from config import Config
 from llm import get_chat_model
+from progress import spinner
 import rag
 
 REQUIREMENTS_PROMPT = """You are reviewing a software requirements document for ambiguity before \
@@ -48,6 +49,7 @@ _STATE_SUBDIR = "state"
 def requirements_node(config: Config):
     def node(state: dict) -> dict:
         attempt = state["retry_counts"].get("requirements", 0) + 1
+        print("  [requirements] running...", flush=True)
         start = time.monotonic()
         result = stages.requirements_executor(state["scenario_dir"])
 
@@ -61,13 +63,16 @@ def requirements_node(config: Config):
             state_dir = os.path.join(state["repo_root"], "orchestrator", _STATE_SUBDIR)
             rag_context = rag.retrieve("requirements ambiguity assumptions scope", state["scenario_dir"],
                                         state_dir, state["scenario_id"], config)
+            print(f"  [requirements] calling {config.model_provider}/{config.resolved_model_name} "
+                  f"for ambiguity analysis...", flush=True)
             llm_start = time.monotonic()
             llm = get_chat_model(config)
             prompt = REQUIREMENTS_PROMPT.format(
                 context=f"Related context from prior runs/artifacts:\n{rag_context}\n" if rag_context else "",
                 requirements=requirements_text,
             )
-            response = llm.invoke(prompt)
+            with spinner(f"[requirements] {config.model_provider}/{config.resolved_model_name}"):
+                response = llm.invoke(prompt)
             messages.append({"stage": "requirements", "kind": "llm_reasoning", "success": True,
                               "detail": response.content, "duration_s": round(time.monotonic() - llm_start, 3)})
 
@@ -99,13 +104,18 @@ def code_review_node(config: Config):
                 excerpt_parts.append(f"# {os.path.relpath(path, service_dir)}\n{f.read()[:800]}")
         source_excerpt = "\n\n".join(excerpt_parts) or "(no source files found)"
 
+        print(f"  [static_analysis] calling {config.model_provider}/{config.resolved_model_name} "
+              f"for advisory code review...", flush=True)
         start = time.monotonic()
         llm = get_chat_model(config)
         prompt = CODE_REVIEW_PROMPT.format(
-            context="This is a real-time advisory review, not a gate.",
+            context="This is a real-time advisory review, not a gate. The codebase under review is "
+                    "a FastAPI + Redis service (not Flask, not SQL/ORM-backed) — ground any "
+                    "framework-specific comments in what the source below actually imports and does.",
             source_excerpt=source_excerpt,
         )
-        response = llm.invoke(prompt)
+        with spinner(f"[static_analysis] {config.model_provider}/{config.resolved_model_name}"):
+            response = llm.invoke(prompt)
         message = {"stage": "static_analysis", "kind": "llm_reasoning", "success": True,
                    "detail": response.content, "duration_s": round(time.monotonic() - start, 3)}
         return {"messages": [message]}

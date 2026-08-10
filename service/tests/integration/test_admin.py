@@ -100,3 +100,9 @@ def test_analytics_json_summary_stays_public_even_when_auth_enabled(client):
 
     resp = client.get(f"/api/v1/links/{code}/analytics")  # no auth header
     assert resp.status_code == 200
+
+
+def test_admin_logout_reissues_401_challenge(client):
+    resp = client.get("/admin/logout", headers=_basic_auth_header("admin", "secret"))
+    assert resp.status_code == 401
+    assert resp.headers["www-authenticate"] == 'Basic realm="zyp"'
