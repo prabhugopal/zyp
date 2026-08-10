@@ -8,12 +8,20 @@ from __future__ import annotations
 
 import time
 
+import rollback
 import stages
 from config import Config
 from policy import profile_for
 
 MAX_ATTEMPTS = {"implementation_core": 2, "unit_testing": 2, "static_analysis": 2}
 DEFAULT_MAX_ATTEMPTS = 1
+
+# Paths implementation_core is allowed to touch — the same list rollback_paths() restores from
+# the pre-stage git snapshot if this stage exhausts its retries. Declared once, here, so the
+# retry-exhaustion path in graph.py and this capture logic never drift apart.
+ROLLBACK_PATHS = {
+    "implementation_core": ["service/routes", "service/services"],
+}
 
 _SCENARIO_STAGES = {
     "architecture_design": stages.architecture_design_executor,
@@ -38,6 +46,10 @@ def make_node(stage_id: str, config: Config):
 
     def node(state: dict) -> dict:
         attempt = state["retry_counts"].get(stage_id, 0) + 1
+        context_delta: dict = {}
+        if stage_id in ROLLBACK_PATHS and f"__snapshot__{stage_id}" not in state["context"]:
+            context_delta[f"__snapshot__{stage_id}"] = rollback.git_head(state["repo_root"])
+
         start = time.monotonic()
         result = executor(state[path_key])
 
@@ -50,10 +62,12 @@ def make_node(stage_id: str, config: Config):
                                                      f"gate ({config.policy_profile} profile)", transient=False)
 
         marker = {f"__last_result__{stage_id}": {"success": result.success, "transient": result.transient}}
+        context_delta.update(result.data if result.success else {})
+        context_delta.update(marker)
         message = {"stage": stage_id, "kind": "deterministic", "success": result.success,
                    "detail": result.detail, "duration_s": round(time.monotonic() - start, 3)}
         return {
-            "context": {**(result.data if result.success else {}), **marker},
+            "context": context_delta,
             "stage_statuses": {stage_id: "PASSED" if result.success else "FAILED"},
             "retry_counts": {stage_id: attempt},
             "messages": [message],
@@ -70,6 +84,34 @@ def should_retry(state: dict, stage_id: str) -> bool:
     return last["transient"] and state["retry_counts"].get(stage_id, 0) < max_attempts
 
 
+def retries_exhausted(state: dict, stage_id: str) -> bool:
+    """True once a stage has failed and will never be retried again — the signal to roll back."""
+    last = state["context"].get(f"__last_result__{stage_id}")
+    return bool(last and not last["success"] and not should_retry(state, stage_id))
+
+
 def stage_passed(state: dict, stage_id: str) -> bool:
     last = state["context"].get(f"__last_result__{stage_id}")
     return bool(last and last["success"])
+
+
+def make_rollback_node(stage_id: str):
+    """Runs when a retryable stage exhausts its retries: reverts its declared paths to the git
+    snapshot recorded at stage entry, and marks the stage ROLLED_BACK instead of leaving it FAILED
+    — a distinct status so a run report can tell "we caught it and safely reverted" apart from
+    "it broke and nothing cleaned up after it".
+    """
+    paths = ROLLBACK_PATHS[stage_id]
+
+    def node(state: dict) -> dict:
+        snapshot = state["context"].get(f"__snapshot__{stage_id}", "")
+        restored = rollback.rollback_paths(state["repo_root"], snapshot, paths)
+        detail = (f"rolled back {', '.join(paths)} to {snapshot[:12]} after exhausting retries"
+                   if restored else f"rollback of {', '.join(paths)} failed (snapshot={snapshot!r})")
+        message = {"stage": stage_id, "kind": "rollback", "success": restored, "detail": detail}
+        return {
+            "stage_statuses": {stage_id: "ROLLED_BACK" if restored else "FAILED"},
+            "messages": [message],
+        }
+
+    return node

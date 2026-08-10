@@ -25,7 +25,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
 from config import Config
-from nodes.deterministic import make_node, should_retry, stage_passed
+from nodes.deterministic import make_node, make_rollback_node, retries_exhausted, should_retry, stage_passed
 from nodes.reasoning import code_review_node, requirements_node
 from state import SDLCState
 
@@ -61,6 +61,7 @@ def build_graph(config: Config) -> StateGraph:
     g.add_node("architecture_design", make_node("architecture_design", config))
     for stage_id in _IMPLEMENTATION_STAGES:
         g.add_node(stage_id, make_node(stage_id, config))
+    g.add_node("implementation_core_rollback", make_rollback_node("implementation_core"))
     g.add_node("implementation_join", _passthrough, defer=True)
     g.add_node("unit_testing", make_node("unit_testing", config))
     g.add_node("static_analysis", make_node("static_analysis", config))
@@ -82,11 +83,23 @@ def build_graph(config: Config) -> StateGraph:
         lambda s: fan_out_targets if stage_passed(s, "architecture_design") else "__end__",
         {**{t: t for t in fan_out_targets}, "__end__": END})
 
-    # implementation_core is the only one of the three with a retry policy (matches stages.py);
-    # all three unconditionally reach the join once truly done, pass or fail — the join decides.
-    g.add_conditional_edges("implementation_core",
-        lambda s: "implementation_core" if should_retry(s, "implementation_core") else "implementation_join",
-        {"implementation_core": "implementation_core", "implementation_join": "implementation_join"})
+    # implementation_core is the only one of the three with a retry policy (matches stages.py).
+    # On a pass or a transient failure still worth retrying, it behaves like the other two
+    # (self-loop or straight to the join). Once retries are exhausted on a real failure, it routes
+    # to a real git-based rollback of its declared paths before joining — a bad change is reverted,
+    # not silently left half-applied.
+    def _implementation_core_router(state: dict) -> str:
+        if should_retry(state, "implementation_core"):
+            return "implementation_core"
+        if retries_exhausted(state, "implementation_core"):
+            return "implementation_core_rollback"
+        return "implementation_join"
+
+    g.add_conditional_edges("implementation_core", _implementation_core_router,
+        {"implementation_core": "implementation_core",
+         "implementation_core_rollback": "implementation_core_rollback",
+         "implementation_join": "implementation_join"})
+    g.add_edge("implementation_core_rollback", "implementation_join")
     g.add_edge("implementation_storage", "implementation_join")
     g.add_edge("implementation_analytics", "implementation_join")
 

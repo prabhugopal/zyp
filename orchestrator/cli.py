@@ -30,7 +30,7 @@ STATE_DIR = os.path.join(ORCH_DIR, "state")
 SCENARIOS_DIR = os.path.join(REPO_ROOT, "scenarios")
 APPROVALS_DIR = os.path.join(STATE_DIR, "approvals")
 
-VALID_SCENARIOS = ("greenfield",)
+VALID_SCENARIOS = ("greenfield", "brownfield")
 
 
 def _initial_state(run_id: str, scenario_id: str, scenario_dir: str) -> dict:
