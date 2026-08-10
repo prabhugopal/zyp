@@ -164,19 +164,45 @@ def cmd_approve(args: argparse.Namespace) -> int:
     return 0
 
 
+def _latest_run_id(scenario_id: str) -> str | None:
+    """run_id is f'{scenario}-{timestamp}' with a sortable UTC timestamp (see cmd_run), so the
+    lexicographically-last matching state/runs/*.json is the most recent run of that scenario."""
+    matches = sorted(glob.glob(os.path.join(STATE_DIR, "runs", f"{scenario_id}-*.json")))
+    return os.path.basename(matches[-1])[: -len(".json")] if matches else None
+
+
 def cmd_status(args: argparse.Namespace) -> int:
+    if (args.run_id is None) == (args.scenario is None):
+        print("pass exactly one of a run_id or --scenario <name>", file=sys.stderr)
+        return 2
+
+    run_id = args.run_id
+    if run_id is None:
+        run_id = _latest_run_id(args.scenario)
+        if run_id is None:
+            print(f"no runs found for scenario '{args.scenario}'", file=sys.stderr)
+            return 1
+
     config = load_config(os.path.join(ORCH_DIR, "config.yaml"))
-    scenario_id = _scenario_from_run_id(args.run_id)
+    scenario_id = _scenario_from_run_id(run_id)
     compiled = _build_graph(scenario_id, config).compile(checkpointer=get_checkpointer(STATE_DIR))
-    snap = compiled.get_state({"configurable": {"thread_id": args.run_id}})
+    snap = compiled.get_state({"configurable": {"thread_id": run_id}})
     if not snap.values:
-        print(f"no such run: {args.run_id}", file=sys.stderr)
+        print(f"no such run: {run_id}", file=sys.stderr)
         return 1
     print(json.dumps({
-        "run_id": args.run_id,
+        "run_id": run_id,
         "stage_statuses": snap.values.get("stage_statuses", {}),
         "blocked_on": snap.next or None,
     }, indent=2))
+
+    if args.open_report:
+        report_path = os.path.join(STATE_DIR, "runs", f"{run_id}.report.html")
+        if os.path.exists(report_path):
+            webbrowser.open(f"file://{os.path.abspath(report_path)}")
+        else:
+            print(f"no report found at {report_path} (run hasn't finished, or was interrupted "
+                  f"before completion)", file=sys.stderr)
     return 0
 
 
@@ -196,6 +222,7 @@ examples:
                                                   record an approval, then re-run to resume it:
   ./zypit run --scenario greenfield --run-id <run_id>
   ./zypit status <run_id>                        inspect one run's stage statuses
+  ./zypit status --scenario greenfield --open    latest greenfield run; open its HTML report
   ./zypit list                                   list every run and its final status
 
 scenarios: greenfield, brownfield, ambiguous — see ../README.md and ./README.md for what each
@@ -227,7 +254,12 @@ def main() -> int:
     p_approve.set_defaults(func=cmd_approve)
 
     p_status = sub.add_parser("status", help="print run state")
-    p_status.add_argument("run_id")
+    p_status.add_argument("run_id", nargs="?", default=None,
+                           help="omit and pass --scenario instead to inspect the latest run")
+    p_status.add_argument("--scenario", choices=VALID_SCENARIOS, default=None,
+                           help="look up the latest run of this scenario instead of a specific run_id")
+    p_status.add_argument("--open", dest="open_report", action="store_true",
+                           help="open the run's HTML report in a browser")
     p_status.set_defaults(func=cmd_status)
 
     p_list = sub.add_parser("list", help="list all runs")

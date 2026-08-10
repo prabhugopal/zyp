@@ -25,9 +25,12 @@ other credential requirement to run the orchestrator.
 ```bash
 ./zypit run --scenario <name>              # start or resume a run
 ./zypit approve <run_id> --by "<name>" --decision approve|reject
-./zypit status <run_id>
+./zypit status <run_id>                    # or: ./zypit status --scenario <name>  (latest run)
 ./zypit list
 ```
+
+`status --scenario <name>` looks up the most recent run of that scenario without needing its exact
+`run_id`; add `--open` to either `run` or `status` to open the run's HTML report in a browser.
 
 (equivalently: `uv run python cli.py run --scenario <name>`, etc.)
 
