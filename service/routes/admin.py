@@ -5,13 +5,12 @@ config.auth_enabled for local-dev convenience."""
 from __future__ import annotations
 
 import os
-import secrets
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.templating import Jinja2Templates
 
+from auth import require_auth
 from config import Config
 from deps import get_analytics_service, get_config, get_link_service
 from services.analytics_service import AnalyticsService
@@ -20,18 +19,6 @@ from services.link_service import LinkService
 router = APIRouter(prefix="/admin", tags=["Admin"])
 _TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "templates", "admin")
 templates = Jinja2Templates(directory=_TEMPLATES_DIR)
-security = HTTPBasic(auto_error=False)
-
-
-def require_auth(credentials: HTTPBasicCredentials | None = Depends(security),
-                  config: Config = Depends(get_config)) -> None:
-    if not config.auth_enabled:
-        return
-    valid = (credentials is not None
-             and secrets.compare_digest(credentials.username, config.admin_username)
-             and secrets.compare_digest(credentials.password, config.admin_password))
-    if not valid:
-        raise HTTPException(401, "Authentication required", headers={"WWW-Authenticate": 'Basic realm="zyp-admin"'})
 
 
 @router.get("", name="admin_index", dependencies=[Depends(require_auth)])

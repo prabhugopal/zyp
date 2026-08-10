@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
+from auth import require_auth
 from deps import get_analytics_service, get_link_service, get_rate_limiter
 from rate_limit import RateLimiter
 from schemas import (
@@ -93,7 +94,10 @@ def get_analytics(code: str, link_service: LinkService = Depends(get_link_servic
 
 @router.get("/{code}/analytics/export", summary="Export recent clicks as CSV",
             description="The same recent-clicks data as the analytics endpoint (newest first, "
-                         "capped at 50), as a downloadable CSV file.")
+                         "capped at 50), as a downloadable CSV file. Requires authentication: a "
+                         "raw per-click export is treated as more sensitive than the aggregated "
+                         "summary at GET .../analytics, which stays public.",
+            dependencies=[Depends(require_auth)])
 def export_analytics_csv(code: str, link_service: LinkService = Depends(get_link_service),
                           analytics_service: AnalyticsService = Depends(get_analytics_service)) -> Response:
     link_service.get(code)  # 404s if unknown

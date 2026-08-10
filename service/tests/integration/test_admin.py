@@ -77,3 +77,26 @@ def test_admin_detail_unknown_code_redirects_to_index(client):
     resp = client.get("/admin/doesnotexist", headers=headers, follow_redirects=False)
     assert resp.status_code == 303
     assert resp.headers["location"].endswith("/admin")
+
+
+def test_analytics_export_requires_auth_when_enabled(client):
+    create_resp = client.post("/admin/links", data={"originalUrl": "https://example.com"},
+                               headers=_basic_auth_header("admin", "secret"), follow_redirects=False)
+    code = create_resp.headers["location"].split("created=")[1]
+
+    unauthenticated = client.get(f"/api/v1/links/{code}/analytics/export")
+    assert unauthenticated.status_code == 401
+
+    authenticated = client.get(f"/api/v1/links/{code}/analytics/export",
+                                headers=_basic_auth_header("admin", "secret"))
+    assert authenticated.status_code == 200
+
+
+def test_analytics_json_summary_stays_public_even_when_auth_enabled(client):
+    """The narrow scope: only the raw per-click export requires auth, not the aggregated summary."""
+    create_resp = client.post("/admin/links", data={"originalUrl": "https://example.com"},
+                               headers=_basic_auth_header("admin", "secret"), follow_redirects=False)
+    code = create_resp.headers["location"].split("created=")[1]
+
+    resp = client.get(f"/api/v1/links/{code}/analytics")  # no auth header
+    assert resp.status_code == 200

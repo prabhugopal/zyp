@@ -1,0 +1,14 @@
+{
+  "run_id": "brownfield-20260810T184703Z",
+  "scenario_id": "brownfield",
+  "status": "FAILED",
+  "stage_statuses": {
+    "requirements": "PASSED",
+    "architecture_design": "PASSED",
+    "documentation": "PASSED",
+    "implementation_analytics": "PASSED",
+    "implementation_core": "ROLLED_BACK",
+    "implementation_storage": "PASSED"
+  },
+  "updated_at": "2026-08-10T18:48:24.761006+00:00"
+}
