@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+
+# per-run pytest artifacts (junit/coverage output), not source
+service/.zyp-junit-*.xml
+service/.zyp-coverage.json
+
+# the LangGraph checkpoint DB — regenerable, not human-inspectable evidence.
+# state/runs/*.json (run summaries) and state/approvals/*.json (approval decisions) ARE
+# committed on purpose, as real evidence, same as sLink's orchestrator/state/.
+orchestrator/state/checkpoints.sqlite

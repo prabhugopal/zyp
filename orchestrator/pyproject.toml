@@ -1,0 +1,13 @@
+[project]
+name = "zyp-orchestrator"
+version = "0.1.0"
+description = "LangGraph SDLC orchestrator that builds and gates the Zyp service itself"
+requires-python = ">=3.11"
+dependencies = [
+    "langgraph",
+    "langgraph-checkpoint-sqlite",
+    "langchain-core",
+    "langchain-ollama",
+    "langchain-anthropic",
+    "pyyaml",
+]

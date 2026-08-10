@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Zyp — {{ link.code }}</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+    a { color: #2563eb; }
+    .stats { display: flex; gap: 1rem; margin: 1rem 0; }
+    .stat-card { flex: 1; border: 1px solid #e5e5e5; border-radius: 8px; padding: 1rem; }
+    .stat-card .value { font-size: 1.6rem; font-weight: 600; }
+    .stat-card .label { font-size: 0.8rem; color: #666; }
+    .columns { display: flex; gap: 2rem; margin-top: 1.5rem; }
+    .columns > div { flex: 1; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 0.4rem; border-bottom: 1px solid #e5e5e5; font-size: 0.85rem; }
+    code { background: #f2f2f2; padding: 0.1rem 0.35rem; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <p><a href="{{ url_for('admin.index') }}">&larr; back</a></p>
+  <h1><code>{{ link.code }}</code></h1>
+  <p>{{ link.original_url }}</p>
+
+  <div class="stats">
+    <div class="stat-card"><div class="value">{{ analytics.total_clicks }}</div><div class="label">Total clicks</div></div>
+    <div class="stat-card"><div class="value">{{ analytics.clicks_by_day | length }}</div><div class="label">Active days</div></div>
+    <div class="stat-card"><div class="value">{{ analytics.recent_clicks[0].clicked_at | int if analytics.recent_clicks else "—" }}</div><div class="label">Last click</div></div>
+  </div>
+
+  <h2>Recent activity</h2>
+  <table>
+    <thead><tr><th>Timestamp</th><th>Referrer</th><th>User agent</th></tr></thead>
+    <tbody>
+    {% for click in analytics.recent_clicks %}
+      <tr><td>{{ click.clicked_at | int }}</td><td>{{ click.referrer }}</td><td>{{ click.user_agent }}</td></tr>
+    {% else %}
+      <tr><td colspan="3">No clicks yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="columns">
+    <div>
+      <h2>Top referrers</h2>
+      <table>
+        <tbody>
+        {% for referrer, count in analytics.top_referrers %}
+          <tr><td>{{ referrer }}</td><td>{{ count }}</td></tr>
+        {% else %}
+          <tr><td>—</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h2>Top user agents</h2>
+      <table>
+        <tbody>
+        {% for ua, count in analytics.top_user_agents %}
+          <tr><td>{{ ua }}</td><td>{{ count }}</td></tr>
+        {% else %}
+          <tr><td>—</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

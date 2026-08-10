@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Zyp admin</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+    h1 { font-size: 1.4rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #e5e5e5; font-size: 0.9rem; }
+    code { background: #f2f2f2; padding: 0.1rem 0.35rem; border-radius: 3px; }
+    form { display: flex; gap: 0.5rem; margin-top: 1rem; }
+    input { padding: 0.4rem; border: 1px solid #ccc; border-radius: 4px; }
+    input[name="originalUrl"] { flex: 1; }
+    button { padding: 0.4rem 1rem; border: none; background: #2563eb; color: white; border-radius: 4px; cursor: pointer; }
+    .msg { padding: 0.5rem; border-radius: 4px; margin-top: 1rem; }
+    .msg.error { background: #fee2e2; color: #991b1b; }
+    .msg.success { background: #dcfce7; color: #166534; }
+  </style>
+</head>
+<body>
+  <h1>Zyp — recent links</h1>
+
+  {% if request.args.get('error') %}<div class="msg error">{{ request.args.get('error') }}</div>{% endif %}
+  {% if request.args.get('created') %}<div class="msg success">Created: {{ request.args.get('created') }}</div>{% endif %}
+
+  <form method="post" action="{{ url_for('admin.create') }}">
+    <input type="url" name="originalUrl" placeholder="https://example.com/..." required>
+    <input type="text" name="customAlias" placeholder="custom alias (optional)">
+    <button type="submit">Shorten</button>
+  </form>
+
+  <table>
+    <thead><tr><th>Code</th><th>Original URL</th><th>Active</th><th>Created</th></tr></thead>
+    <tbody>
+    {% for link in links %}
+      <tr>
+        <td><a href="{{ url_for('admin.detail', code=link.code) }}"><code>{{ link.code }}</code></a></td>
+        <td>{{ link.original_url }}</td>
+        <td>{{ "yes" if link.active else "no" }}</td>
+        <td>{{ link.created_at | int }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4">No links yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

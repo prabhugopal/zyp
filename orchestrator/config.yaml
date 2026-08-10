@@ -1,0 +1,8 @@
+# Model backend: "ollama" (default, local, zero cost) or "anthropic" (needs ANTHROPIC_API_KEY).
+model_provider: ollama
+# Leave unset to use the provider's default (llama3.2:3b for ollama, claude-haiku-4-5 for anthropic).
+model_name:
+# Retrieval backend for the requirements/ambiguity node: "keyword" (stdlib, default) or "none".
+rag_backend: keyword
+# Coverage-gate strictness for unit_testing: "standard" (70%) or "strict" (90%).
+policy_profile: standard
