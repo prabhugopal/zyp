@@ -11,7 +11,7 @@ from dataclasses import dataclass
 class Config:
     redis_url: str = "redis://localhost:6379/0"
     # 5000 collides with macOS's AirPlay Receiver (ControlCenter), which squats on it system-wide
-    # and answers with a 403 before Flask ever sees the request — 5055 avoids that entirely.
+    # and answers with a 403 before the app ever sees the request — 5055 avoids that entirely.
     base_url: str = "http://localhost:5055"
     rate_limit_per_minute: int = 30
     admin_username: str = "admin"

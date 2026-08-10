@@ -2,7 +2,7 @@
 
 ## Goal
 
-A URL shortener service built on Python/Flask + Redis, with Redis as the only datastore — no SQL,
+A URL shortener service built on Python/FastAPI + Redis, with Redis as the only datastore — no SQL,
 no ORM, no separate persistence layer to migrate.
 
 ## Functional requirements

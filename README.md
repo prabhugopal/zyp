@@ -1,6 +1,6 @@
 # zyp
 
-A URL shortener built on Python, Flask, and Redis, paired with an SDLC orchestration engine built
+A URL shortener built on Python, FastAPI, and Redis, paired with an SDLC orchestration engine built
 on [LangGraph](https://github.com/langchain-ai/langgraph) that builds and gates it: real command
 execution, real test results, real human approval checkpoints, and configurable LLM-assisted
 reasoning layered on top of — never substituting for — deterministic verification.
@@ -16,7 +16,7 @@ reasoning layered on top of — never substituting for — deterministic verific
 | Link service | `service/services/link_service.py` | Create, read, update, soft-delete, and list short links |
 | Analytics service | `service/services/analytics_service.py` | Record clicks; aggregate totals, daily counts, top referrers/user-agents, recent activity |
 | Rate limiter | `service/rate_limit.py` | Fixed-window request limiting on link creation |
-| HTTP layer | `service/routes/`, `service/app.py` | REST API (flask-smorest + marshmallow), redirect endpoint, admin UI |
+| HTTP layer | `service/routes/`, `service/app.py` | REST API (FastAPI + Pydantic), redirect endpoint, admin UI |
 | Orchestration graph | `orchestrator/graph.py` | The SDLC stage graph: parallel execution, retry routing, approval gate |
 | Stage executors | `orchestrator/stages.py` | The real commands each stage runs against `service/` |
 | Reasoning nodes | `orchestrator/nodes/reasoning.py` | LLM-assisted ambiguity analysis and code review, advisory only |
@@ -127,6 +127,13 @@ failure.
   Neither can change a stage's PASSED/FAILED status — that always comes from a real command's exit
   code or a real file check. Trade-off: reasoning quality depends on the configured model; the
   default local model is weaker than a hosted one, by design, to keep the default path free.
+- **The admin UI is server-rendered (Jinja2), not a client-side app.** No JS framework, no client
+  bundle, no API tokens sitting in browser storage. Trade-off: this is not automatically "more
+  secure" — it buys a smaller client-side attack surface, not CSRF protection. In fact, because the
+  admin UI uses HTTP Basic Auth, browsers cache those credentials per-origin and auto-attach them
+  to any request to that origin, including one triggered by a malicious page elsewhere — which is
+  why the create-link form's missing CSRF token (see Limitations) is a real gap, not a theoretical
+  one, and SSR alone does not close it.
 
 ## Setup
 
@@ -167,7 +174,7 @@ To use Claude instead of the local model, set `model_provider: anthropic` in
 | Layer | Tooling | What it covers |
 |---|---|---|
 | Service unit tests | `pytest` + `fakeredis` | `service/tests/unit/` — each service in isolation, no live Redis required |
-| Service integration tests | `pytest` + real local Redis (db 15) | `service/tests/integration/` — full HTTP surface through Flask's test client, including errors, rate limiting, and the admin UI |
+| Service integration tests | `pytest` + real local Redis (db 15) | `service/tests/integration/` — full HTTP surface through FastAPI's TestClient, including errors, rate limiting, and the admin UI |
 | Orchestrator verification | live scenario runs | `orchestrator/cli.py run` executes real commands against `service/`; there is no separate orchestrator test suite — its correctness is demonstrated by the scenario runs themselves |
 
 ```bash
@@ -193,8 +200,8 @@ cd service && uv run pytest tests/ --cov=. --cov-report=term-missing
   development, not for a real deployment.
 - The orchestrator has no automated test suite of its own; its behavior is verified by the
   scenario runs, whose output is checked into `orchestrator/state/`.
-- The default port is 5055, not Flask's usual 5000 — on macOS, the AirPlay Receiver service binds
-  port 5000 system-wide and answers with its own 403 before a request ever reaches Flask. This was
+- The default port is 5055, not FastAPI's usual 5000 — on macOS, the AirPlay Receiver service binds
+  port 5000 system-wide and answers with its own 403 before a request ever reaches the app. This was
   found by actually hitting `/swagger-ui` and getting a `Server: AirTunes/...` response instead of
   an error from the app.
 
@@ -202,7 +209,7 @@ cd service && uv run pytest tests/ --cov=. --cov-report=term-missing
 
 ```
 zyp/
-  service/            Flask + Redis application (uv-managed)
+  service/            FastAPI + Redis application (uv-managed)
   orchestrator/         LangGraph SDLC engine that builds and gates it (uv-managed)
   scenarios/             requirements/design/documentation artifacts each scenario gates against
 ```

@@ -2,7 +2,7 @@
 
 ## Architecture
 
-Three thin layers over a single Redis connection: routes (Flask + flask-smorest MethodViews) →
+Three thin layers over a single Redis connection: routes (FastAPI APIRouter path operations) →
 services (link lifecycle, analytics, rate limiting) → Redis, with no ORM or SQL layer in between.
 Each service owns a small, purpose-fit set of Redis structures instead of one general-purpose
 relational schema:
@@ -33,20 +33,20 @@ graph TD
 
 ## API layer
 
-flask-smorest MethodViews per resource, with marshmallow schemas (`schemas.py`) doing validation
+FastAPI path operations per resource, with Pydantic models (`schemas.py`) doing validation
 and response serialization from the same declaration — one schema, two jobs. OpenAPI/Swagger UI
 is generated from those schemas automatically, not hand-written.
 
 ## Error model
 
 RFC 7807 `problem+json` for domain errors (`LinkNotFoundError` → 404, `LinkExpiredError` → 410,
-`AliasTakenError` → 409, `InvalidAliasError`/`ValueError` → 400), registered as Flask error
-handlers in `errors.py`. Marshmallow's own validation-error JSON shape is left as-is rather than
-forced into the same envelope — a deliberate scope cut, not an oversight.
+`AliasTakenError` → 409, `InvalidAliasError`/`ValueError` → 400), registered as FastAPI exception
+handlers in `errors.py`. FastAPI's own request-validation-error JSON shape (422) is left as-is
+rather than forced into the same envelope — a deliberate scope cut, not an oversight.
 
 ## Testing
 
 `tests/unit/` runs against `fakeredis` (fast, no Redis process needed) for the three services.
 `tests/integration/` runs against a real local Redis (db 15, flushed around each test) through
-Flask's real test client, covering the full HTTP surface including error responses, rate limiting,
+FastAPI's real TestClient, covering the full HTTP surface including error responses, rate limiting,
 and the admin UI's auth and form-submission paths.

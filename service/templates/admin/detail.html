@@ -18,9 +18,9 @@
   </style>
 </head>
 <body>
-  <p><a href="{{ url_for('admin.index') }}">&larr; back</a></p>
+  <p><a href="{{ request.url_for('admin_index') }}">&larr; back</a></p>
   <h1><code>{{ link.code }}</code></h1>
-  <p>{{ link.original_url }}</p>
+  <p><a href="{{ base_url }}/{{ link.code }}">{{ base_url }}/{{ link.code }}</a> &rarr; {{ link.original_url }}</p>
 
   <div class="stats">
     <div class="stat-card"><div class="value">{{ analytics.total_clicks }}</div><div class="label">Total clicks</div></div>

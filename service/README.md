@@ -1,6 +1,6 @@
 # Zyp service
 
-A URL shortener built on Flask + Redis — no SQL, no ORM. Every feature is backed by the Redis
+A URL shortener built on FastAPI + Redis — no SQL, no ORM. Every feature is backed by the Redis
 structure that's the natural fit for its access pattern: a sorted set for pagination, INCR/EXPIRE
 for rate limiting, capped lists for recent-click history. See the [top-level README](../README.md)
 for the full architecture and how [`../orchestrator/`](../orchestrator/) builds and gates it.
@@ -35,7 +35,7 @@ uv run pytest tests/ --cov=. --cov-report=term-missing         # 97% coverage
 
 Unit tests (`tests/unit/`) use `fakeredis` — no Redis needed, fast. Integration tests
 (`tests/integration/`) run against a real local Redis (db 15, flushed around each test) through
-Flask's real test client — the actual create → redirect → analytics path, not mocked.
+FastAPI's real TestClient — the actual create → redirect → analytics path, not mocked.
 
 ## API
 
@@ -49,8 +49,8 @@ Flask's real test client — the actual create → redirect → analytics path, 
 | `GET` | `/api/v1/links/{code}/analytics` | Total clicks, by-day, top referrers/user-agents, recent clicks |
 | `GET` | `/{code}` | The actual redirect; records the click |
 
-Errors are RFC 7807 `problem+json` for domain errors (404/409/410/400); marshmallow validation
-errors keep flask-smorest's own JSON shape.
+Errors are RFC 7807 `problem+json` for domain errors (404/409/410/400); request-validation errors
+(422) keep FastAPI's own JSON shape.
 
 ## Design notes
 

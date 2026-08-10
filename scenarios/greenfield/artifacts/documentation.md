@@ -12,7 +12,7 @@
   aggregation query.
 - Create-only rate limiting (`rate_limit.py`): a Redis fixed-window counter.
 - RFC 7807 `problem+json` error responses for all domain errors (`errors.py`).
-- OpenAPI/Swagger UI at `/swagger-ui`, generated from the same marshmallow schemas that validate
+- OpenAPI/Swagger UI at `/swagger-ui`, generated from the same Pydantic models that validate
   requests.
 - A minimal Basic-Auth admin UI (`/admin`) — link list + creation form, and a per-link detail page
   with a summary row (total clicks / active days / last click) above a recent-activity table and

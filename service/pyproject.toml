@@ -1,12 +1,14 @@
 [project]
 name = "zyp-service"
 version = "0.1.0"
-description = "Zyp: a URL shortener built on Flask + Redis"
+description = "Zyp: a URL shortener built on FastAPI + Redis"
 requires-python = ">=3.11"
 dependencies = [
-    "flask",
-    "flask-smorest",
+    "fastapi",
+    "uvicorn",
     "redis",
+    "jinja2",
+    "python-multipart",
 ]
 
 [dependency-groups]
@@ -14,6 +16,7 @@ dev = [
     "pytest",
     "pytest-cov",
     "fakeredis",
+    "httpx2>=2.10.0",
 ]
 
 [tool.pytest.ini_options]

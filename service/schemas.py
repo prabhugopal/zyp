@@ -1,49 +1,46 @@
-"""Marshmallow schemas — validation at the boundary and response serialization from one
-declaration."""
+"""Pydantic models — validation at the boundary and response serialization from one declaration."""
 
 from __future__ import annotations
 
-from marshmallow import Schema, fields, validate
+from pydantic import BaseModel, Field
 
 
-class CreateLinkRequest(Schema):
-    originalUrl = fields.Str(required=True, validate=validate.Length(min=1))
-    customAlias = fields.Str(required=False, allow_none=True, load_default=None,
-                              validate=validate.Length(min=4, max=20))
-    expiresAt = fields.Float(required=False, allow_none=True, load_default=None,
-                              metadata={"description": "Unix timestamp (seconds)"})
+class CreateLinkRequest(BaseModel):
+    originalUrl: str = Field(min_length=1)
+    customAlias: str | None = Field(default=None, min_length=4, max_length=20)
+    expiresAt: float | None = Field(default=None, description="Unix timestamp (seconds)")
 
 
-class UpdateLinkRequest(Schema):
-    expiresAt = fields.Float(required=False, allow_none=True, load_default=None)
-    active = fields.Bool(required=False, allow_none=True, load_default=None)
+class UpdateLinkRequest(BaseModel):
+    expiresAt: float | None = None
+    active: bool | None = None
 
 
-class LinkResponse(Schema):
-    code = fields.Str()
-    originalUrl = fields.Str()
-    shortUrl = fields.Str()
-    active = fields.Bool()
-    createdAt = fields.Float()
-    expiresAt = fields.Float(allow_none=True)
+class LinkResponse(BaseModel):
+    code: str
+    originalUrl: str
+    shortUrl: str
+    active: bool
+    createdAt: float
+    expiresAt: float | None = None
 
 
-class LinkPageResponse(Schema):
-    links = fields.List(fields.Nested(LinkResponse))
-    page = fields.Int()
-    size = fields.Int()
-    totalElements = fields.Int()
+class LinkPageResponse(BaseModel):
+    links: list[LinkResponse]
+    page: int
+    size: int
+    totalElements: int
 
 
-class ClickRecordResponse(Schema):
-    clickedAt = fields.Float()
-    referrer = fields.Str()
-    userAgent = fields.Str()
+class ClickRecordResponse(BaseModel):
+    clickedAt: float
+    referrer: str
+    userAgent: str
 
 
-class AnalyticsResponse(Schema):
-    totalClicks = fields.Int()
-    clicksByDay = fields.Dict(keys=fields.Str(), values=fields.Int())
-    topReferrers = fields.List(fields.List(fields.Raw()))
-    topUserAgents = fields.List(fields.List(fields.Raw()))
-    recentClicks = fields.List(fields.Nested(ClickRecordResponse))
+class AnalyticsResponse(BaseModel):
+    totalClicks: int
+    clicksByDay: dict[str, int]
+    topReferrers: list[tuple[str, int]]
+    topUserAgents: list[tuple[str, int]]
+    recentClicks: list[ClickRecordResponse]

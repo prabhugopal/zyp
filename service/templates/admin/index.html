@@ -21,10 +21,10 @@
 <body>
   <h1>Zyp — recent links</h1>
 
-  {% if request.args.get('error') %}<div class="msg error">{{ request.args.get('error') }}</div>{% endif %}
-  {% if request.args.get('created') %}<div class="msg success">Created: {{ request.args.get('created') }}</div>{% endif %}
+  {% if request.query_params.get('error') %}<div class="msg error">{{ request.query_params.get('error') }}</div>{% endif %}
+  {% if request.query_params.get('created') %}<div class="msg success">Created: {{ request.query_params.get('created') }}</div>{% endif %}
 
-  <form method="post" action="{{ url_for('admin.create') }}">
+  <form method="post" action="{{ request.url_for('admin_create') }}">
     <input type="url" name="originalUrl" placeholder="https://example.com/..." required>
     <input type="text" name="customAlias" placeholder="custom alias (optional)">
     <button type="submit">Shorten</button>
@@ -35,7 +35,7 @@
     <tbody>
     {% for link in links %}
       <tr>
-        <td><a href="{{ url_for('admin.detail', code=link.code) }}"><code>{{ link.code }}</code></a></td>
+        <td><a href="{{ request.url_for('admin_detail', code=link.code) }}"><code>{{ link.code }}</code></a></td>
         <td>{{ link.original_url }}</td>
         <td>{{ "yes" if link.active else "no" }}</td>
         <td>{{ link.created_at | int }}</td>

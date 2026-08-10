@@ -47,4 +47,4 @@ if command -v lsof >/dev/null 2>&1 && lsof -ti:"$PORT" >/dev/null 2>&1; then
 fi
 
 echo "Starting Zyp on port $PORT (Ctrl+C to stop)..."
-exec uv run python -c "from app import create_app; create_app().run(port=$PORT)"
+exec uv run uvicorn app:app --port "$PORT"
