@@ -125,6 +125,14 @@ failure.
   durable human-approval pauses that survive across separate process invocations, without writing
   a bespoke approval-polling mechanism. Trade-off: the join-node scheduling behavior above is a
   real sharp edge that has to be understood and worked around explicitly.
+- **The orchestrator verifies; it never writes code.** Every `implementation_*` stage checks
+  whether code that's already been written by hand imports cleanly, matches an expected pattern, or
+  passes its tests — none of them generate or edit a single file in `service/`. Trade-off: changing
+  a scenario's `requirements.md` and re-running does not make the corresponding feature appear; an
+  `implementation_*` stage will fail for real if the code hasn't been updated to match, exactly like
+  a build gate on a PR that changed the spec but not the implementation. A human (or a coding agent
+  working outside this orchestrator) has to write the implementation first — reliable code
+  generation from a spec was out of scope for what this project needed to demonstrate.
 - **The LLM is advisory, never authoritative.** Two nodes (`requirements`, `code_review`) invoke a
   language model to surface ambiguity or design concerns as text attached to the run's messages.
   Neither can change a stage's PASSED/FAILED status — that always comes from a real command's exit
