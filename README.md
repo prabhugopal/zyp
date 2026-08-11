@@ -30,7 +30,8 @@ reasoning layered on top of — never substituting for — deterministic verific
 | Analytics service | `service/services/analytics_service.py` | Record clicks; aggregate totals, daily counts, top referrers/user-agents, recent activity |
 | Rate limiter | `service/rate_limit.py` | Fixed-window request limiting on link creation |
 | HTTP layer | `service/routes/`, `service/app.py` | REST API (FastAPI + Pydantic), redirect endpoint, admin UI |
-| Orchestration graph | `orchestrator/graph.py` | The SDLC stage graph: parallel execution, retry routing, approval gate |
+| Orchestration graph | `orchestrator/graph.py` | The SDLC stage topology: parallel execution, `defer=True` joins, retry routing, approval gate |
+| Stage config | `orchestrator/stages.yaml`, `stage_config.py` | Per-stage retry limits and rollback paths, as data — see `orchestrator/README.md` for why this is split from graph topology |
 | Stage executors | `orchestrator/stages.py` | The real commands each stage runs against `service/` |
 | Reasoning nodes | `orchestrator/nodes/reasoning.py` | LLM-assisted ambiguity analysis and code review, advisory only |
 | CLI | `orchestrator/cli.py` | `run`, `approve`, `status`, `list` |
@@ -124,9 +125,9 @@ without it, `integration_testing` (a real `pytest` subprocess) ran twice in one 
 path length or retry count.
 
 **Retry.** `implementation_core`, `unit_testing`, and `static_analysis` each carry a retry policy
-(`orchestrator/nodes/deterministic.py`). A transient failure re-enters the same node via a
-conditional self-loop, up to a fixed attempt limit, before the join routes the run to a terminal
-failure.
+declared in `orchestrator/stages.yaml` (attempt limit, and for `implementation_core`, which paths
+to roll back). A transient failure re-enters the same node via a conditional self-loop, up to that
+attempt limit, before the join routes the run to a terminal failure.
 
 ## Key decisions
 
