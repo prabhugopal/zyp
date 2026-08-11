@@ -18,6 +18,33 @@ document covers configuration, the CLI, and what a completed run demonstrates.
 Using `model_provider: anthropic` requires `ANTHROPIC_API_KEY` in the environment; there is no
 other credential requirement to run the orchestrator.
 
+## Stage configuration
+
+`stages.yaml` declares each stage's retry limit and, where applicable, which paths it rolls back
+on exhausted retries — `stage_config.py` loads it into the `MAX_ATTEMPTS`/`ROLLBACK_PATHS` dicts
+`nodes/deterministic.py` reads:
+
+```yaml
+default_max_attempts: 1
+stages:
+  implementation_core:
+    max_attempts: 2
+    rollback_paths: [service/routes, service/services]
+  unit_testing:
+    max_attempts: 2
+  static_analysis:
+    max_attempts: 2
+```
+
+This is deliberately the *only* part of a stage's behavior pulled into data. Graph topology —
+which nodes exist, which edges connect them, `defer=True` join placement, the 3-way conditional
+router on `implementation_core` (retry / pass / rollback-then-join) — stays explicit Python in
+`graph.py` and `graph_ambiguous.py`. A generic YAML-to-graph compiler would have to correctly
+re-derive the `defer=True` rule (see "A bug found while building this" below) for every possible
+shape; that's real risk for marginal readability benefit at this project's size, so the split is
+drawn at "how many retries / what rolls back" — genuinely just data — rather than at graph
+construction, which depends on LangGraph-specific mechanics that were hard-won, not boilerplate.
+
 ## CLI
 
 `./zypit` is a thin wrapper around `uv run python cli.py` — same commands, shorter to type:

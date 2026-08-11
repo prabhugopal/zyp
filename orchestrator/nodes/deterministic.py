@@ -13,16 +13,7 @@ import stages
 from config import Config
 from policy import profile_for
 from progress import spinner
-
-MAX_ATTEMPTS = {"implementation_core": 2, "unit_testing": 2, "static_analysis": 2}
-DEFAULT_MAX_ATTEMPTS = 1
-
-# Paths implementation_core is allowed to touch — the same list rollback_paths() restores from
-# the pre-stage git snapshot if this stage exhausts its retries. Declared once, here, so the
-# retry-exhaustion path in graph.py and this capture logic never drift apart.
-ROLLBACK_PATHS = {
-    "implementation_core": ["service/routes", "service/services"],
-}
+from stage_config import DEFAULT_MAX_ATTEMPTS, MAX_ATTEMPTS, ROLLBACK_PATHS
 
 _SCENARIO_STAGES = {
     "architecture_design": stages.architecture_design_executor,

@@ -1,0 +1,25 @@
+# Per-stage retry and rollback metadata — the one part of a stage's behavior that's genuinely
+# just data, previously hardcoded as two dicts in nodes/deterministic.py.
+#
+# Graph topology (which edges connect which nodes, defer=True join placement, the 3-way
+# conditional router on implementation_core) stays explicit Python in graph.py and
+# graph_ambiguous.py, on purpose: those decisions depend on LangGraph-specific mechanics — see
+# graph.py's module docstring for the defer=True story, the one real bug this project hit — that
+# a generic YAML-to-graph compiler would have to re-derive correctly for every possible shape.
+# That's real risk for marginal benefit at this project's size, so this file only answers two
+# questions: how many times does a stage retry, and what does it roll back on exhausted retries.
+# stage_config.py is the only reader.
+
+default_max_attempts: 1
+
+# Only stages that deviate from the default are listed below.
+stages:
+  implementation_core:
+    max_attempts: 2
+    rollback_paths:
+      - service/routes
+      - service/services
+  unit_testing:
+    max_attempts: 2
+  static_analysis:
+    max_attempts: 2
